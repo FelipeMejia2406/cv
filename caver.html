@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carverna - App de Citas</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: #FFD600; margin: 0; padding: 0; }
+        .center-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .profile-pic-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #FFD600;
+            object-fit: cover;
+            background: #222;
+            margin-bottom: 16px;
+        }
+        .sexo-select {
+            margin: 12px 0;
+        }
+        .main-btns {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .espera-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 40px;
+        }
+        .espera-foto {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #FFD600;
+            object-fit: cover;
+            background: #222;
+            margin-bottom: 10px;
+        }
+        .video-call {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            margin-top: 40px;
+        }
+        .video-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .video-box video, .video-box img {
+            width: 220px;
+            height: 160px;
+            background: #333;
+            border: 2px solid #FFD600;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .nombre-video {
+            margin-top: 8px;
+            font-weight: bold;
+            color: #FFD600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Formulario de registro -->
+    <div id="registerBox" class="center-box">
+        <img src="" id="previewPic" class="profile-pic-preview" style="display:none;">
+        <input type="file" id="profileInput" accept="image/*">
+        <input type="text" id="username" placeholder="Tu nombre" style="margin:12px 0;">
+        <div class="sexo-select">
+            <label><input type="radio" name="sexo" value="Hombre"> Hombre</label>
+            <label><input type="radio" name="sexo" value="Mujer"> Mujer</label>
+        </div>
+        <button id="saveProfileBtn">Guardar</button>
+    </div>
+
+    <!-- Espera de emparejamiento -->
+    <div id="waitBox" class="center-box" style="display:none;">
+        <div class="espera-box">
+            <img src="" id="esperaPic" class="espera-foto">
+            <div id="esperaNombre" style="font-size:18px; font-weight:bold; margin-bottom:8px;"></div>
+            <div id="esperaSexo" style="font-size:14px; margin-bottom:16px;"></div>
+            <div>Esperando emparejamiento para videollamada...</div>
+        </div>
+    </div>
+
+    <!-- Videollamada (mitad y mitad) -->
+    <div id="videoCallBox" class="center-box" style="display:none;">
+        <div class="video-call">
+            <div class="video-box">
+                <video id="userCam" autoplay playsinline muted></video>
+                <div class="nombre-video" id="nombreUsuario"></div>
+            </div>
+            <div class="video-box">
+                <!-- Aquí irá el video remoto -->
+                <video id="remoteCam" autoplay playsinline></video>
+                <div class="nombre-video" id="nombreRemoto"></div>
+            </div>
+        </div>
+        <div style="margin-top:20px;">
+            <span>Tiempo restante: <span id="timer">60</span> segundos</span>
+            <button id="addTimeBtn">+30 seg (1 moneda)</button>
+        </div>
+    </div>
+
+    <script>
+        // Estado de usuario
+        let userProfile = {
+            nombre: "",
+            sexo: "",
+            foto: ""
+        };
+        let coins = 10;
+        let timer = 60;
+        let interval = null;
+
+        // Elementos
+        const registerBox = document.getElementById('registerBox');
+        const waitBox = document.getElementById('waitBox');
+        const videoCallBox = document.getElementById('videoCallBox');
+        const previewPic = document.getElementById('previewPic');
+        const profileInput = document.getElementById('profileInput');
+        const usernameInput = document.getElementById('username');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+        // Previsualización de foto
+        profileInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    previewPic.src = ev.target.result;
+                    previewPic.style.display = 'block';
+                    userProfile.foto = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Guardar perfil y pasar a espera
+        saveProfileBtn.onclick = function() {
+            const nombre = usernameInput.value.trim();
+            const sexo = document.querySelector('input[name="sexo"]:checked');
+            if (!userProfile.foto) {
+                alert("Por favor, sube una foto.");
+                return;
+            }
+            if (!nombre) {
+                alert("Por favor, ingresa tu nombre.");
+                return;
+            }
+            if (!sexo) {
+                alert("Por favor, selecciona tu sexo.");
+                return;
+            }
+            userProfile.nombre = nombre;
+            userProfile.sexo = sexo.value;
+
+            // Mostrar espera
+            registerBox.style.display = 'none';
+            document.getElementById('esperaPic').src = userProfile.foto;
+            document.getElementById('esperaNombre').textContent = userProfile.nombre;
+            document.getElementById('esperaSexo').textContent = userProfile.sexo;
+            waitBox.style.display = 'flex';
+
+            // Aquí deberías llamar al backend para emparejar usuarios
+            // Simulación: después de 3 segundos, inicia videollamada
+            setTimeout(startVideoCall, 3000);
+        };
+
+        // Simulación de videollamada (mitad y mitad)
+        function startVideoCall() {
+            waitBox.style.display = 'none';
+            videoCallBox.style.display = 'flex';
+            // Mostrar nombre y foto del usuario local
+            document.getElementById('nombreUsuario').textContent = userProfile.nombre;
+            // Simular nombre y video remoto
+            document.getElementById('nombreRemoto').textContent = userProfile.sexo === "Hombre" ? "Chica" : "Chico";
+            // Iniciar cámara local
+            startCamera();
+            startTimer();
+        }
+
+        // Cámara local
+        const userCam = document.getElementById('userCam');
+        let streamRef = null;
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                userCam.srcObject = stream;
+                streamRef = stream;
+            } catch (e) {
+                alert('No se pudo acceder a la cámara.');
+            }
+        }
+
+        // Timer videollamada
+        document.getElementById('addTimeBtn').onclick = function() {
+            if (coins > 0) {
+                coins--;
+                timer += 30;
+                document.getElementById('timer').textContent = timer;
+            } else {
+                alert('No tienes monedas suficientes.');
+            }
+        };
+        function startTimer() {
+            timer = 60;
+            document.getElementById('timer').textContent = timer;
+            clearInterval(interval);
+            interval = setInterval(() => {
+                timer--;
+                document.getElementById('timer').textContent = timer;
+                if (timer <= 0) {
+                    clearInterval(interval);
+                    alert('La videollamada ha terminado.');
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>npm install -g pnpm
